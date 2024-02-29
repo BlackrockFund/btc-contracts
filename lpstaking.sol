@@ -203,7 +203,7 @@ contract _401k2 is Ownable(msg.sender),ReentrancyGuard {
         UserInfo storage user = userInfo[_pid][_user];
         uint256 accBTCPerShare = pool.accBTCPerShare;
         uint256 lpSupply = pool.totalToken;
-        if (block.timestamp > pool.lastRewardTime && lpSupply != 0) {
+        if (block.timestamp > pool.lastRewardTime && lpSupply != 0 && totalAllocPoint != 0) {
             uint256 multiplier = getMultiplier(pool.lastRewardTime, block.timestamp);
             uint256 BTCReward = multiplier.mul(BTCPerSecond).mul(pool.allocPoint).div(totalAllocPoint);
             accBTCPerShare = accBTCPerShare.add(BTCReward.mul(1e12).div(lpSupply));
@@ -216,7 +216,7 @@ contract _401k2 is Ownable(msg.sender),ReentrancyGuard {
         UserInfo storage user = userInfo[_pid][_user];
         uint256 accUSDCPerShare = pool.accUSDCPerShare;
         uint256 lpSupply = pool.totalToken;
-        if (block.timestamp > pool.lastRewardTime && lpSupply != 0) {
+        if (block.timestamp > pool.lastRewardTime && lpSupply != 0 && totalAllocPoint != 0) {
             uint256 multiplier = getMultiplier(pool.lastRewardTime, block.timestamp);
             uint256 USDCReward = multiplier.mul(USDCPerSecond).mul(pool.allocPoint).div(totalAllocPoint);
             accUSDCPerShare = accUSDCPerShare.add(USDCReward.mul(1e12).div(lpSupply));
@@ -239,7 +239,7 @@ contract _401k2 is Ownable(msg.sender),ReentrancyGuard {
             return;
         }
         uint256 lpSupply = pool.totalToken;
-        if (lpSupply == 0) {
+        if (lpSupply == 0 ||  totalAllocPoint == 0) {
             pool.lastRewardTime = block.timestamp;
             return;
         }
@@ -330,5 +330,21 @@ contract _401k2 is Ownable(msg.sender),ReentrancyGuard {
     function updateRewards(token _BTC, token _USDC) external onlyOwner {
         USDC = _USDC;
         BTC = _BTC;
+    }
+
+    function emergencyWithdraw(uint256 _pid) public {
+        PoolInfo storage pool = poolInfo[_pid];
+        UserInfo storage user = userInfo[_pid][msg.sender];
+       
+        pool.lpToken.safeTransfer(address(msg.sender), user.amount);
+        pool.totalToken = pool.totalToken.sub(user.amount);
+
+        user.amount = 0;
+        user.rewardDebt = 0;
+        user.USDCrewardDebt = 0;
+
+        emit EmergencyWithdraw(msg.sender, _pid, user.amount);
+
+
     }
 }
