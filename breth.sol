@@ -44,6 +44,8 @@ contract brETHVault is ERC20, Ownable(msg.sender), ReentrancyGuard {
 
     function redeem(uint256 brETHAmount) external nonReentrant {
         require(balanceOf(msg.sender) >= brETHAmount, "Insufficient brETH balance");
+        uint256 profits = checkProtocolProfits();
+        require(profits >= 0, "slash event occured, wait for sufficient supply");
         uint256 fee = calculateFee(brETHAmount, redeemFeePercent);
         uint256 amountAfterFee = brETHAmount - fee;
         totalFee += fee;
